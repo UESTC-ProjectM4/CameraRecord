@@ -80,13 +80,34 @@ ProcessImage::ProcessImage(QWidget *parent):QWidget(parent)
     }
 
     //mark Timestamp
-    timer = new QTimer(this);
-    connect(timer,SIGNAL(timeout()),this,SLOT(update()));
-    timer->start(30);
+//    timer = new QTimer(this);
+//    connect(timer,SIGNAL(timeout()),this,SLOT(update()));
+//    timer->start(30);
 
     //insert the label in lines up widgets horizontally
     QHBoxLayout *hLayout = new QHBoxLayout();
     hLayout->addWidget(label);
+
+    /**
+      * @date 20-7-14 @author marktlen
+      * @brief 录制时间计算
+      */
+    recordTimer = new QTimer(this);
+    connect(recordTimer,SIGNAL(timeout()),this,SLOT(updateRecordTimer()));
+
+    minLCD = new QLCDNumber(2); //只显示两位
+    secLCD = new QLCDNumber(2);
+    minRecord = 0;              //初始化时间
+    secRecord = 0;
+
+    QLabel *timepoint = new QLabel(":");
+    QLabel *timeTitle = new QLabel("record time:");
+
+    QHBoxLayout *timerHLayout = new QHBoxLayout();
+    timerHLayout->addWidget(timeTitle);
+    timerHLayout->addWidget(minLCD);
+    timerHLayout->addWidget(timepoint);
+    timerHLayout->addWidget(secLCD);
 
     /**
       * @date 20-7-13 @author lzh marktlen
@@ -98,6 +119,7 @@ ProcessImage::ProcessImage(QWidget *parent):QWidget(parent)
     //insert state laber
     stateLabel = new QLabel();
     vLayout->addWidget(stateLabel);
+    vLayout->addLayout(timerHLayout);
     vLayout->addWidget(Startbutton);
     vLayout->addWidget(Endbutton);
     vLayout->addWidget(Replaybutton);
@@ -129,7 +151,7 @@ ProcessImage::ProcessImage(QWidget *parent):QWidget(parent)
     connect(Endbutton,SIGNAL(clicked()),this,SLOT(on_Endbutton_clicked()));
     connect(Replaybutton,SIGNAL(clicked()),this,SLOT(on_Replaybutton_clicked()));
 
-    //初始化按钮状态
+    //初始化录制机状态
     record_flag=false;
     replay_flag=0;
     replayfileopen_flag=false;
@@ -151,12 +173,12 @@ void ProcessImage::paintEvent(QPaintEvent *)
 {
     /**
       * @date 20-7-13 @author lzh
-      * @brief 录制按钮误处设置
+      * @brief 录制逻辑
       */
     if(replay_flag==0)
     {
         rs = vd->get_frame((void **)&p,&len);   //采集帧
-        qDebug("Image len=%d\n",len);           //打印帧大小
+//        qDebug("Image len=%d\n",len);           //打印帧大小
         if(record_flag==true){
             fwrite(p,len,1,fp);
         }
@@ -183,8 +205,6 @@ void ProcessImage::paintEvent(QPaintEvent *)
             if(!File_replay.atEnd())
             {
                 out<<File_replay.read(153600);
-
-
                 char *temp_char;
                 temp_char=block.data();
                 replay_p=(uchar *)temp_char;
@@ -196,14 +216,14 @@ void ProcessImage::paintEvent(QPaintEvent *)
             }
             else
             {
-                replay_flag=2;
                 QMessageBox::warning(this,tr("Replay End"),tr("File replay is end!"),QMessageBox::Yes);
                 File_replay.close();
 
                 /**
                   * @date 20-7-14 @author marktlen
-                  * @brief 录制放完后继续预览
+                  * @brief 录制放完后继续预览，再次点击可再次回看
                   */
+                replayfileopen_flag=false;
                 stateLabel->setText("state: preview");
                 replay_flag=0;
             }
@@ -276,6 +296,21 @@ int ProcessImage::convert_yuv_to_rgb_pixel(int y, int u, int v)
 }
 /*yuv格式转换为rgb格式*/
 
+/**
+  * @date 20-7-14 @author marktlen
+  * @brief 录制时钟刷新槽函数，超时触发
+  */
+void ProcessImage::updateRecordTimer()
+{
+    secRecord++;
+    if(secRecord >= 60*10)
+    {
+        secRecord = 0;
+        minRecord++;
+    }
+    minLCD->display(minRecord);
+    secLCD->display(secRecord/10);
+}
 
 void ProcessImage::on_Startbutton_clicked()
 {
@@ -286,8 +321,10 @@ void ProcessImage::on_Startbutton_clicked()
     Endbutton->setEnabled(true);
     Replaybutton->setEnabled(true);
     stateLabel->setText("state: recording...");
-    //QMessageBox::warning(this,tr("start"),tr("File is open!"),QMessageBox::Ok);
-    //replay_flag=0;
+
+    recordTimer->start(0);   //开始计时
+    minRecord = 0;
+    secRecord = 0;
 }
 void ProcessImage::on_Endbutton_clicked()
 {
@@ -298,6 +335,7 @@ void ProcessImage::on_Endbutton_clicked()
     Startbutton->setEnabled(true);
     Endbutton->setEnabled(false);
     stateLabel->setText("state: stop record");
+    recordTimer->stop();    //停止计时
 }
 void ProcessImage::on_Replaybutton_clicked()
 {

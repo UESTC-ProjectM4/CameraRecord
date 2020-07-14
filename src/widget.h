@@ -20,11 +20,17 @@ private:
     QPushButton *Startbutton,*Endbutton,*Replaybutton; //3 operation buttons next to videocapture
     QImage *replay_frame;
 
-    //QPixmap *frame;
+    /* 时钟录制变量 */
     QTimer *timer;
+    QTimer *recordTimer; //视频录制时长计算器
+    QLCDNumber *minLCD;
+    QLCDNumber *secLCD;
+    int minRecord;
+    int secRecord;
+
     int rs;
-    uchar *pp; //
-    uchar * p;
+    uchar *pp; //RGB当前帧
+    uchar * p; //YUV当前帧
 
 
     uchar *replay_pp;
@@ -49,6 +55,7 @@ private slots:
     void on_Endbutton_clicked();
     void on_Replaybutton_clicked();
 
+    void updateRecordTimer();
 
 };
 
