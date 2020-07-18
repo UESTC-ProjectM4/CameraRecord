@@ -15,6 +15,7 @@ TEMPLATE = app
 
 LIBS += D:\opencv3.4.8\opencv\buildQt\install\x86\mingw\lib\libopencv_*.a
 INCLUDEPATH += D:\opencv3.4.8\opencv\buildQt\install\include
+INCLUDEPATH += D:\opencv3.4.8\opencv\buildQt\include
 
 # The following define makes your compiler emit warnings if you use
 # any feature of Qt which has been marked as deprecated (the exact warnings
@@ -43,3 +44,6 @@ FORMS += \
 qnx: target.path = /tmp/$${TARGET}/bin
 else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
+
+DISTFILES += \
+    haarcascade_frontalface_alt2.xml

@@ -1,6 +1,7 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include <QFileDialog>
+#include <QMessageBox>
 
 
 MainWindow::MainWindow(QWidget *parent) :
@@ -9,7 +10,11 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     ui->setupUi(this);
     //让级联分类器 打开OpenCV官方训练好的人脸识别的Haar特征分类器
-    ccf.load("F:\\qtWP\\qt5.7.9\\testCamera\\haarcascade_frontalface_alt2.xml");
+    ccf.load("haarcascade_frontalface_alt2.xml");
+    if(ccf.empty())
+    {
+        QMessageBox::about(NULL, "OpenCV", "error open haar!");
+    }
 
     capture.open(0);    //录制默认的视频设备，这里我用的自己的笔记本摄像头
     captureFace = true; //默认开启人脸识别
