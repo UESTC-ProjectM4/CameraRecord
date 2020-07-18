@@ -4,14 +4,14 @@
 #include <QMainWindow>
 #include <QPaintEvent>
 #include <QTimer>
+#include <QDateTime>
 
 #include <QThread>
+#include <QPalette>
 
 #include "opencv2/opencv.hpp"//OpenCV文件包含
 using namespace cv;          //OpenCV命名空间
 using namespace std;
-
-#define saveVideoName "temp.avi"
 
 namespace Ui {
 class MainWindow;
@@ -41,14 +41,15 @@ public:
     int minRecord;
     int secRecord;
 
-    //播放速度控制器
-    QTimer *vedioTimer;
-    int vedioSec;
-
     //录制状态标签
     bool record_flag;           //录制状态
     bool replayfileopen_flag;   //回放文件状态
     short replay_flag;          //回放状态
+
+    //当前系统时间
+    QDateTime datetime;
+    QString strDatetime;        //设置显示日期时间字段
+    QString recordDatetime;
 
 
     QPainter *painter;
@@ -68,7 +69,6 @@ private slots:
     void on_faceRadioButton_clicked();
 
     void updateRecordTimer();           //计时器刷新内容
-    void updateImageTimer();            //计时器回放内容
 
 private:
     Ui::MainWindow *ui;

@@ -22,16 +22,14 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->minLCD->setDigitCount(2);
     ui->secLCD->setDigitCount(2);
 
-    //视频播放控制器
-    vedioTimer = new QTimer();
-    connect(recordTimer,SIGNAL(timeout()),this,SLOT(updateImageTimer()));
-    vedioSec = 0;
-
     //初始化录制机状态
     record_flag=false;
     replay_flag=0;
     replayfileopen_flag=false;
-    ui->stateLabel->setText("state: preview");
+    ui->stateLabel->setText("窗口状态：浏览");
+    QPalette pe;
+    pe.setColor(QPalette::WindowText,Qt::darkGreen);
+    ui->stateLabel->setPalette(pe);
 
     //不能用到按钮变灰
     ui->replayButton->setEnabled(false);
@@ -46,6 +44,11 @@ MainWindow::~MainWindow()
 
 void MainWindow::paintEvent(QPaintEvent *)
 {
+    //当前时间
+    datetime=QDateTime::currentDateTime();
+    strDatetime = datetime.toString("    yyyy-MM-dd hh:mm:ss ddd");
+    ui->dateLabel->setText(strDatetime);
+
     //是否处于录制状态
     if(replay_flag == 0)
     {
@@ -60,17 +63,25 @@ void MainWindow::paintEvent(QPaintEvent *)
     {
         if(replayfileopen_flag==false) //回看文件打开标识
         {
-            capture.open(saveVideoName);
+            capture.open(recordDatetime.toStdString());
             replayfileopen_flag=true;
         }
         else
         {
             capture >> frame;
-            QThread::usleep(25000);
+            if(captureFace)
+            {
+                QThread::usleep(20000);
+            }else{
+                QThread::usleep(80000);
+            }
             if(frame.empty() == true)
             {
                 replayfileopen_flag=false;
-                ui->stateLabel->setText("state: preview");
+                ui->stateLabel->setText("窗口状态：浏览");
+                QPalette pe;
+                pe.setColor(QPalette::WindowText,Qt::darkGreen);
+                ui->stateLabel->setPalette(pe);
                 replay_flag=0;
                 capture.open(0);    //录制默认的视频设备
                 capture.read(frame);                //摄像头中读取当前帧
@@ -82,7 +93,6 @@ void MainWindow::paintEvent(QPaintEvent *)
     if(captureFace)
     {
         cvtColor(frame, img, CV_BGR2GRAY);  //转换成灰度图，因为harr特征需要从灰度图中提取
-        //equalizeHist(img, img);             //直方图均衡行
 
         /* detectMultiScale函数它可以检测出图片中所有的人脸
          * 并将人脸用vector保存各个人脸的坐标、大小（用矩形表示），函数由分类器对象调用
@@ -108,7 +118,12 @@ void MainWindow::on_startButton_clicked()
     //按钮变动
     ui->startButton->setEnabled(false);
     ui->endButton->setEnabled(true);
-    ui->stateLabel->setText("state: recording...");
+
+    //状态标签
+    ui->stateLabel->setText("窗口状态：录制中...");
+    QPalette pe;
+    pe.setColor(QPalette::WindowText,Qt::red);
+    ui->stateLabel->setPalette(pe);
 
     //开始计时
     minRecord = 0;
@@ -116,7 +131,9 @@ void MainWindow::on_startButton_clicked()
     recordTimer->start(0);
 
     //打开录制视频
-    videoWriter.open(saveVideoName,VideoWriter::fourcc('M', 'J', 'P', 'G'), 30.0, Size(640, 480), true);
+    recordDatetime = datetime.toString("yyyy-MM-dd_hh-mm-ss") + ".avi";
+    videoWriter.open(recordDatetime.toStdString(),VideoWriter::fourcc('M', 'J', 'P', 'G'), 30.0, Size(640, 480), true);
+
 }
 
 void MainWindow::on_endButton_clicked()
@@ -129,18 +146,23 @@ void MainWindow::on_endButton_clicked()
     ui->endButton->setEnabled(false);
     ui->replayButton->setEnabled(true);
 
-    ui->stateLabel->setText("state: stop record");
+    //状态标签
+    ui->stateLabel->setText("窗口状态：停止录制");
+    QPalette pe;
+    pe.setColor(QPalette::WindowText,Qt::black);
+    ui->stateLabel->setPalette(pe);
+
     recordTimer->stop();    //停止计时
 }
 
 void MainWindow::on_replayButton_clicked()
 {
-    ui->stateLabel->setText("state: replay...");
-    replay_flag=1;
+    ui->stateLabel->setText("窗口状态：回放中...");
+    QPalette pe;
+    pe.setColor(QPalette::WindowText,Qt::darkBlue);
+    ui->stateLabel->setPalette(pe);
 
-    //    //回放速率控制器
-    //    vedioSec = 0;
-    //    vedioTimer->start();
+    replay_flag=1;
 }
 
 void MainWindow::on_faceRadioButton_clicked()
@@ -162,29 +184,4 @@ void MainWindow::updateRecordTimer()
     }
     ui->minLCD->display(minRecord);
     ui->secLCD->display(secRecord/10);
-}
-
-void MainWindow::updateImageTimer()
-{
-    vedioSec++;
-
-    if(captureFace)
-    {
-        capture >> frame;
-    }
-    else
-    {
-        if(vedioSec%100)
-            capture >> frame;
-    }
-
-    if(frame.empty() == true)
-    {
-        replayfileopen_flag=false;
-        ui->stateLabel->setText("state: preview");
-        replay_flag=0;
-        capture.open(0);    //录制默认的视频设备
-        capture.read(frame);                //摄像头中读取当前帧
-        vedioTimer->stop();
-    }
 }
